@@ -6,8 +6,6 @@ import { type CodeNode, setDraggingNodeId, updateNode } from '../store/flowSlice
 interface NodeProps {
     node: CodeNode;
     onNodeClick: ( nodeId: string ) => void;
-    onConnectionStart: ( nodeId: string, handleId: string, position: { x: number; y: number } ) => void;
-    onConnectionEnd: ( nodeId: string, handleId: string ) => void;
     isConnecting: boolean;
     isInputNode: boolean;
 }
@@ -15,8 +13,6 @@ interface NodeProps {
 export const Node: React.FC<NodeProps> = ( {
     node,
     onNodeClick,
-    onConnectionStart,
-    onConnectionEnd,
     isConnecting,
     isInputNode = false
 } ) => {
@@ -119,74 +115,6 @@ export const Node: React.FC<NodeProps> = ( {
         }
     }, [ handleLabelSubmit, node.data.label ] );
 
-    // Get handle position relative to canvas
-    const getHandlePosition = useCallback( ( handleId: string ) => {
-        if ( !nodeRef.current ) return { x: 0, y: 0 };
-
-        const nodeRect = nodeRef.current.getBoundingClientRect();
-        const canvasRect = nodeRef.current.closest( '[style*="position: relative"]' )?.getBoundingClientRect();
-
-        if ( !canvasRect ) return { x: 0, y: 0 };
-
-        const nodeWidth = 200;
-        const nodeHeight = 100;
-
-        switch ( handleId ) {
-            case 'right':
-                return {
-                    x: node.position.x + nodeWidth,
-                    y: node.position.y + nodeHeight / 2
-                };
-            case 'left':
-                return {
-                    x: node.position.x,
-                    y: node.position.y + nodeHeight / 2
-                };
-            case 'top':
-                return {
-                    x: node.position.x + nodeWidth / 2,
-                    y: node.position.y
-                };
-            case 'bottom':
-                return {
-                    x: node.position.x + nodeWidth / 2,
-                    y: node.position.y + nodeHeight
-                };
-            default:
-                return { x: node.position.x, y: node.position.y };
-        }
-    }, [ node.position ] );
-
-    // Handle connection start from handles
-    const handleConnectionHandleMouseDown = useCallback( ( e: React.MouseEvent, handleId: string ) => {
-        e.stopPropagation();
-        e.preventDefault();
-
-        const position = getHandlePosition( handleId );
-        onConnectionStart( node.id, handleId, position );
-    }, [ onConnectionStart, node.id, getHandlePosition ] );
-
-    // Handle connection end on handles
-    const handleConnectionHandleMouseEnter = useCallback( ( e: React.MouseEvent, handleId: string ) => {
-        if ( isConnecting ) {
-            e.stopPropagation();
-            // Visual feedback that this is a valid drop target
-            ( e.target as HTMLElement ).style.backgroundColor = '#4caf50';
-        }
-    }, [ isConnecting ] );
-
-    const handleConnectionHandleMouseLeave = useCallback( ( e: React.MouseEvent ) => {
-        // Reset visual feedback
-        ( e.target as HTMLElement ).style.backgroundColor = '#2196f3';
-    }, [] );
-
-    const handleConnectionHandleMouseUp = useCallback( ( e: React.MouseEvent, handleId: string ) => {
-        if ( isConnecting ) {
-            e.stopPropagation();
-            e.preventDefault();
-            onConnectionEnd( node.id, handleId );
-        }
-    }, [ isConnecting, onConnectionEnd, node.id ] );
 
     const connectionHandleStyle = {
         position: 'absolute' as const,
@@ -200,12 +128,6 @@ export const Node: React.FC<NodeProps> = ( {
         opacity: isConnecting ? 1 : 0.8,
         transition: 'all 0.2s ease',
         transform: 'scale(1)',
-    };
-
-    const connectionHandleHoverStyle = {
-        ...connectionHandleStyle,
-        transform: 'scale(1.2)',
-        boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
     };
 
     return (

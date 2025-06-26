@@ -11,6 +11,7 @@ export interface ExecutionResult {
 }
 
 export class CodeExecutor {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private static createSafeFunction(code: string): Function {
     // Create a safe execution context with limited access
     const safeContext = {

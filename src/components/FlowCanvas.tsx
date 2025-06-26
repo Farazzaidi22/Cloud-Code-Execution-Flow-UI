@@ -80,7 +80,6 @@ export const FlowCanvas: React.FC = () => {
   const dispatch = useDispatch();
   const nodes = useSelector( ( state: RootState ) => state.flow.nodes );
   const edges = useSelector( ( state: RootState ) => state.flow.edges );
-  const selectedNodeId = useSelector( ( state: RootState ) => state.flow.selectedNodeId );
 
   const canvasRef = useRef<HTMLDivElement>( null );
   const hasInitialized = useRef( false );
@@ -176,16 +175,6 @@ return { status: "initialized", timestamp: new Date().toISOString() };`
     dispatch( setSelectedNodeId( nodeId ) );
   }, [ dispatch ] );
 
-  const handleConnectionStart = useCallback( ( nodeId: string, handleId: string, position: { x: number; y: number } ) => {
-    // Disable manual connections - nodes auto-connect to input
-    return;
-  }, [] );
-
-  const handleConnectionEnd = useCallback( ( targetNodeId: string, targetHandle: string ) => {
-    // Disable manual connections - nodes auto-connect to input
-    return;
-  }, [] );
-
   return (
     <div
       ref={ canvasRef }
@@ -276,8 +265,6 @@ return { status: "initialized", timestamp: new Date().toISOString() };`
           key={ node.id }
           node={ node }
           onNodeClick={ handleNodeClick }
-          onConnectionStart={ handleConnectionStart }
-          onConnectionEnd={ handleConnectionEnd }
           isConnecting={ connectionState.isConnecting }
           isInputNode={ node.id === 'input-node' }
         />
