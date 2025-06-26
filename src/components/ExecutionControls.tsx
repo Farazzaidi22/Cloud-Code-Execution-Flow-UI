@@ -10,6 +10,7 @@ import {
     clearExecutionState
 } from '../store/flowSlice';
 import type { RootState } from '../store';
+// Import the QueueFlowExecutor - adjust path as needed based on your file structure
 import { QueueFlowExecutor, type ExecutionLog, type NodeExecutionResult } from '../services/QueueFlowExecutor';
 
 export const ExecutionControls: React.FC = () => {
@@ -18,6 +19,7 @@ export const ExecutionControls: React.FC = () => {
     const edges = useSelector( ( state: RootState ) => state.flow.edges );
     const isExecuting = useSelector( ( state: RootState ) => state.flow.isExecuting );
     const executionPath = useSelector( ( state: RootState ) => state.flow.executionPath );
+    const selectedNodeId = useSelector( ( state: RootState ) => state.flow.selectedNodeId ); // Add this
 
     const [ logs, setLogs ] = useState<ExecutionLog[]>( [] );
     const [ showLogs, setShowLogs ] = useState( false );
@@ -48,6 +50,57 @@ export const ExecutionControls: React.FC = () => {
         // Update execution path
         dispatch( setExecutionPath( [ ...executionPath, nodeId ] ) );
     }, [ dispatch, executionPath ] );
+
+    // New function to execute a single selected node
+    const executeSelectedNode = useCallback( async ( nodeId: string ) => {
+        const node = nodes.find( n => n.id === nodeId );
+        if ( !node ) {
+            addLog( {
+                nodeId: 'system',
+                nodeName: 'System',
+                timestamp: new Date().toISOString(),
+                type: 'error',
+                message: `Selected node ${ nodeId } not found`
+            } );
+            return;
+        }
+
+        addLog( {
+            nodeId: 'system',
+            nodeName: 'System',
+            timestamp: new Date().toISOString(),
+            type: 'info',
+            message: `Executing selected node: ${ node.data.label }`
+        } );
+
+        handleNodeStart( nodeId );
+
+        try {
+            // Find the node's position in the execution queue to determine API endpoint
+            const executionQueue = QueueFlowExecutor.createExecutionQueue( nodes );
+            const nodeIndex = executionQueue.indexOf( nodeId );
+
+            const { result } = await QueueFlowExecutor.executeNodeStepByStep( nodes, nodeIndex );
+            handleNodeComplete( nodeId, result );
+
+            addLog( {
+                nodeId: 'system',
+                nodeName: 'System',
+                timestamp: new Date().toISOString(),
+                type: 'success',
+                message: `Selected node execution completed`
+            } );
+        } catch ( error ) {
+            const errorMessage = error instanceof Error ? error.message : String( error );
+            addLog( {
+                nodeId: 'system',
+                nodeName: 'System',
+                timestamp: new Date().toISOString(),
+                type: 'error',
+                message: `Selected node execution failed: ${ errorMessage }`
+            } );
+        }
+    }, [ nodes, handleNodeStart, handleNodeComplete, addLog ] );
 
     const handleExecuteFlow = useCallback( async () => {
         if ( nodes.length === 0 ) {
@@ -95,6 +148,18 @@ export const ExecutionControls: React.FC = () => {
             return;
         }
 
+        // If a node is selected, execute only that node
+        if ( selectedNodeId ) {
+            dispatch( setExecuting( true ) );
+            try {
+                await executeSelectedNode( selectedNodeId );
+            } finally {
+                dispatch( setExecuting( false ) );
+            }
+            return;
+        }
+
+        // Otherwise, continue with normal step execution
         if ( !isExecuting ) {
             // Start step execution
             dispatch( clearExecutionState() );
@@ -132,7 +197,7 @@ export const ExecutionControls: React.FC = () => {
             } );
             dispatch( setExecuting( false ) );
         }
-    }, [ nodes, isExecuting, currentStep, dispatch, clearLogs, handleNodeStart, handleNodeComplete, addLog ] );
+    }, [ nodes, isExecuting, currentStep, selectedNodeId, dispatch, clearLogs, handleNodeStart, handleNodeComplete, addLog, executeSelectedNode ] );
 
     const handleReset = useCallback( () => {
         dispatch( clearExecutionState() );
@@ -191,7 +256,7 @@ export const ExecutionControls: React.FC = () => {
                         disabled={ nodes.length === 0 }
                         style={ {
                             padding: '10px 20px',
-                            backgroundColor: '#ff9800',
+                            backgroundColor: selectedNodeId ? '#9c27b0' : '#ff9800',
                             color: 'white',
                             border: 'none',
                             borderRadius: '4px',
@@ -200,7 +265,7 @@ export const ExecutionControls: React.FC = () => {
                             opacity: nodes.length === 0 ? 0.6 : 1,
                         } }
                     >
-                        Step Execute
+                        { selectedNodeId ? `Execute Selected (${ nodes.find( n => n.id === selectedNodeId )?.data.label || 'Node' })` : 'Step Execute' }
                     </button>
 
                     <button
@@ -234,7 +299,10 @@ export const ExecutionControls: React.FC = () => {
                     </button>
 
                     <div style={ { marginLeft: 'auto', fontSize: '14px', color: '#666' } }>
-                        Status: { isExecuting ? `Executing (${ currentStep + 1 }/${ executionQueue.length })` : 'Ready' }
+                        Status: { isExecuting ?
+                            ( selectedNodeId ? `Executing Selected Node` : `Executing (${ currentStep + 1 }/${ executionQueue.length })` ) :
+                            ( selectedNodeId ? `Selected: ${ nodes.find( n => n.id === selectedNodeId )?.data.label || 'Node' }` : 'Ready' )
+                        }
                     </div>
                 </div>
 
@@ -247,13 +315,15 @@ export const ExecutionControls: React.FC = () => {
                                     const node = nodes.find( n => n.id === nodeId );
                                     const isCurrent = index === currentStep && isExecuting;
                                     const isCompleted = index < currentStep;
+                                    const isSelected = nodeId === selectedNodeId;
 
                                     return (
                                         <span
                                             key={ nodeId }
                                             style={ {
-                                                color: isCurrent ? '#ff9800' : isCompleted ? '#4caf50' : '#666',
-                                                fontWeight: isCurrent ? 'bold' : 'normal'
+                                                color: isSelected ? '#9c27b0' : ( isCurrent ? '#ff9800' : isCompleted ? '#4caf50' : '#666' ),
+                                                fontWeight: ( isCurrent || isSelected ) ? 'bold' : 'normal',
+                                                textDecoration: isSelected ? 'underline' : 'none'
                                             } }
                                         >
                                             { index > 0 && ' → ' }
@@ -265,6 +335,11 @@ export const ExecutionControls: React.FC = () => {
                                 'No execution queue'
                             ) }
                         </div>
+                        { selectedNodeId && (
+                            <div style={ { fontSize: '11px', color: '#9c27b0', marginTop: '5px', fontStyle: 'italic' } }>
+                                💡 Tip: Step Execute will run only the selected node. Use Execute Flow for sequential execution.
+                            </div>
+                        ) }
                     </div>
                 </div>
             </div>
