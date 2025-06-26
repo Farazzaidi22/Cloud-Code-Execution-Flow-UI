@@ -51,7 +51,11 @@ const flowSlice = createSlice({
   initialState,
   reducers: {
     addNode: (state, action: PayloadAction<CodeNode>) => {
-      state.nodes.push(action.payload);
+      // Prevent duplicate node IDs
+      const existingNode = state.nodes.find(n => n.id === action.payload.id);
+      if (!existingNode) {
+        state.nodes.push(action.payload);
+      }
     },
     updateNode: (
       state,
@@ -69,7 +73,11 @@ const flowSlice = createSlice({
       );
     },
     addEdge: (state, action: PayloadAction<Edge>) => {
-      state.edges.push(action.payload);
+      // Prevent duplicate edge IDs
+      const existingEdge = state.edges.find(e => e.id === action.payload.id);
+      if (!existingEdge) {
+        state.edges.push(action.payload);
+      }
     },
     removeEdge: (state, action: PayloadAction<string>) => {
       state.edges = state.edges.filter((e) => e.id !== action.payload);

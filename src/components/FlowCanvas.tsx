@@ -83,6 +83,7 @@ export const FlowCanvas: React.FC = () => {
   const selectedNodeId = useSelector( ( state: RootState ) => state.flow.selectedNodeId );
 
   const canvasRef = useRef<HTMLDivElement>( null );
+  const hasInitialized = useRef( false );
   const [ connectionState, setConnectionState ] = useState<ConnectionState>( {
     isConnecting: false,
     sourceNodeId: null,
@@ -91,28 +92,26 @@ export const FlowCanvas: React.FC = () => {
     currentPosition: { x: 0, y: 0 }
   } );
 
-  // Initialize with input node if no nodes exist - FIXED: prevent duplicates
+  // Initialize with input node only once when component mounts
   useEffect( () => {
-    const hasInputNode = nodes.some( node => node.id === 'input-node' );
+    // Only run once, rely on Redux duplicate prevention
+    if ( hasInitialized.current ) return;
+    hasInitialized.current = true;
 
-    if ( nodes.length === 0 || !hasInputNode ) {
-      const inputNode: CodeNode = {
-        id: 'input-node',
-        position: { x: 400, y: 100 },
-        data: {
-          label: 'Input Node',
-          code: `// Input Node - Starting point
+    const inputNode: CodeNode = {
+      id: 'input-node',
+      position: { x: 400, y: 100 },
+      data: {
+        label: 'Input Node',
+        code: `// Input Node - Starting point
 console.log("Starting workflow execution...");
 return { status: "initialized", timestamp: new Date().toISOString() };`
-        }
-      };
-
-      // Only add if it doesn't exist
-      if ( !hasInputNode ) {
-        dispatch( addNode( inputNode ) );
       }
-    }
-  }, [ dispatch ] ); // Removed nodes.length dependency to prevent re-runs
+    };
+
+    // Let Redux duplicate prevention handle if it already exists
+    dispatch( addNode( inputNode ) );
+  }, [] ); // Empty dependency array - only run on mount
 
   const handleCanvasClick = useCallback( ( e: React.MouseEvent ) => {
     if ( e.target === canvasRef.current ) {
