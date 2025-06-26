@@ -10,7 +10,7 @@ import {
     clearExecutionState
 } from '../store/flowSlice';
 import type { RootState } from '../store';
-import { QueueFlowExecutor, type ExecutionLog, type NodeExecutionResult } from '../services/QueueFlowExecutor';
+import { QueueFlowExecutor, type ExecutionLog, type NodeExecutionResult } from '../services/queueFlowExecutor';
 
 export const ExecutionControls: React.FC = () => {
     const dispatch = useDispatch();

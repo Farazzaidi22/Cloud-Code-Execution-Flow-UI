@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../store';
-import { type CodeNode, setSelectedNodeId, setDraggingNodeId, updateNode } from '../store/flowSlice';
+import { type CodeNode, setDraggingNodeId, updateNode } from '../store/flowSlice';
 
 interface NodeProps {
     node: CodeNode;

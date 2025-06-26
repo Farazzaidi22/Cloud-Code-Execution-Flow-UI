@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Node } from './Node';
 import { Edge as EdgeComponent } from './Edge';
 import type { RootState } from '../store';
-import { setSelectedNodeId, type CodeNode, addNode, type Edge, addEdge, updateNode } from '../store/flowSlice';
+import { setSelectedNodeId, type CodeNode, addNode, type Edge, addEdge } from '../store/flowSlice';
 
 interface ConnectionState {
   isConnecting: boolean;
