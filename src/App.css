@@ -1,5 +1,4 @@
 #root {
-  max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
@@ -69,7 +68,8 @@
 main {
   flex: 1;
   position: relative;
-  overflow: hidden;
+  overflow-y: hidden;
+  overflow-x: auto;
 }
 
 /* Node styles */
